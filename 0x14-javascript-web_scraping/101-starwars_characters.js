@@ -1,43 +1,34 @@
 #!/usr/bin/node
-const process = require('process');
+
 const request = require('request');
-let order = [];
-let responses = {};
+const filmsUrl = 'https://swapi-api.hbtn.io/api/films/'.concat(process.argv[2]);
 
-function getCharName (charUrl) {
-  let val;
-  val = request(charUrl, function (error, response, body) {
-    if (error != null) {
-      console.log(error);
-    } else {
-      let data = JSON.parse(body);
-      val = data['name'];
-      responses[charUrl] = val;
-    }
+function doRequest (url) {
+  return new Promise((resolve, reject) => {
+    request(url, (error, response) => {
+      error ? reject(error) : resolve(response);
+    });
   });
 }
 
-function doParse () {
-  let movie = process.argv[2];
-  let url = 'https://swapi.co/api/films/' + movie;
-
-  request(url, function (error, response, body) {
-    if (error != null) {
-      console.log(error);
-    } else {
-      let data = JSON.parse(body);
-      data['characters'].forEach(function (charUrl) {
-        order.push(charUrl);
-        getCharName(charUrl);
-      });
-    }
-  });
+async function getFilm (url) {
+  const res = await doRequest(url);
+  return JSON.parse(res.body).characters;
 }
 
-doParse();
-setTimeout(function () {
-  // some stuff
-  order.forEach(function (url) {
-    console.log(responses[url]);
-  });
-}, 5000);
+async function getCharacters (data) {
+  for (const x in data) {
+    const res = await doRequest(data[x]);
+    console.log(JSON.parse(res.body).name);
+  }
+}
+
+(async () => {
+  let data = '';
+  try {
+    data = await getFilm(filmsUrl);
+    await getCharacters(data);
+  } catch (error) {
+    console.log(error);
+  }
+})();
